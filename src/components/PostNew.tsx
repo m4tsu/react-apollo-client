@@ -5,6 +5,19 @@ import { gql } from "apollo-boost";
 import { client } from "../index";
 import { GET_USER_WITH_POSTS } from "../App";
 
+const GET_POSTS = gql`
+  query getPosts {
+    posts {
+      id
+      user {
+        id
+      }
+      title
+      body
+    }
+  }
+`;
+
 const ADD_POST = gql`
   mutation createPost($userId: Int!, $title: String!, $body: String!) {
     createPost(input: { userId: $userId, title: $title, body: $body }) {
@@ -37,43 +50,23 @@ const UPDATE_POST = gql`
 
 const PostNew: FC = () => {
   const [values, setValues] = useState({ userId: "", title: "", body: "" });
+  const { loading, error, data } = useQuery(GET_POSTS);
   const [updatePost] = useMutation(UPDATE_POST);
-  const [addPost, { data }] = useMutation(ADD_POST, {
+  // console.log(data);
+
+  const [addPost] = useMutation(ADD_POST, {
     update(cache, { data: { createPost } }) {
-      // const post = client.readFragment({
-      //   id: "Post_1",
-      //   fragment: gql`
-      //     fragment post on Post {
-      //       id
-      //       title
-      //       body
-      //     }
-      //   `
-      // });
-      // console.log(post);
-      // const post = createPost.post;
-      // console.log(post);
-      // client.writeFragment({
-      //   id: post.id,
-      //   fragment: gql`
-      //     fragment newPost on Post {
-      //       id
-      //       title
-      //       body
-      //     }
-      //   `,
-      //   data: {
-      //     id: post.id,
-      //     title: post.title,
-      //     body: post.body,
-      //     __typename: "Post"
-      //   }
-      // });
+      const { posts } = cache.readQuery({ query: GET_POSTS });
+      console.log(createPost.post);
+      console.log(posts);
+      cache.writeQuery({
+        query: GET_POSTS,
+        data: { posts: posts.concat([createPost.post]) }
+      });
     }
   });
 
   console.log(values);
-  console.log(data);
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     addPost({
